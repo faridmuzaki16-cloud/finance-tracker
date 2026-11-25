@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a4a">
+<title>Personal Finance Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finance">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f3f6fa;--card:#fff;--tx:#0f172a;--mut:#64748b;--line:#e2e8f0;--navy:#0f2a4a;--em:#059669;--em2:#10b981;--red:#dc2626;--amb:#d97706;--r:16px}
+[data-theme=dark]{--bg:#0a1220;--card:#121c2e;--tx:#e8eef7;--mut:#8da0b8;--line:#22314a;--navy:#0b1a30;--em:#10b981;--em2:#34d399;--red:#f87171;--amb:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:15px}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--em);text-decoration:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.row{display:flex;gap:10px;align-items:center}.sb{justify-content:space-between}.wrap{flex-wrap:wrap}.g{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.mut{color:var(--mut);font-size:13px}.big{font-size:26px;font-weight:700}.b{font-weight:600}
+.inc{color:var(--em)}.exp{color:var(--red)}.tr{color:var(--mut)}
+.btn{min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:600}
+.btn.p{background:var(--em);border-color:var(--em);color:#fff}.btn.d{color:var(--red)}.btn.sm{min-height:36px;padding:0 12px;font-size:13px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+input,select,textarea{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-top:4px}
+label{display:block;margin-bottom:12px;font-size:13px;color:var(--mut)}
+.hero{background:linear-gradient(135deg,var(--navy),#134e4a);color:#fff;border:0}.hero .mut{color:#b6c6da}
+.seg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:14px;margin-bottom:14px}
+.seg button{flex:1;min-height:42px;border:0;border-radius:11px;background:transparent;cursor:pointer;font-weight:600;color:var(--mut)}
+.seg button.on{background:var(--card);color:var(--tx);box-shadow:0 1px 3px #0002}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+.chip{white-space:nowrap;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:13px}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.item{display:flex;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.item:last-child{border:0}
+.ico{width:42px;height:42px;border-radius:12px;background:var(--bg);display:grid;place-items:center;font-size:20px;flex:none}
+.grow{flex:1;min-width:0}.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh{font-size:12px;color:var(--mut);margin:14px 0 2px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.bar{height:10px;border-radius:99px;background:var(--bg);overflow:hidden}.bar i{display:block;height:100%;border-radius:99px}
+.badge{font-size:11px;padding:3px 9px;border-radius:99px;background:var(--bg);font-weight:600}
+.empty,.err{text-align:center;padding:36px 16px;color:var(--mut)}.err{color:var(--red)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 18px;border-radius:12px;z-index:99;display:none;max-width:90%;font-size:14px}
+.modal{position:fixed;inset:0;background:#0009;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.modal>div{background:var(--card);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:900px){.modal{align-items:center}.modal>div{border-radius:20px}}
+/* layout */
+#side{display:none}
+#main{padding:16px;padding-bottom:100px;max-width:1000px;margin:0 auto}
+#bot{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
+#bot a{flex:1;text-align:center;padding:8px 0;color:var(--mut);font-size:11px;min-height:56px}
+#bot a span{display:block;font-size:20px}#bot a.on{color:var(--em);font-weight:700}
+#bot a.add span{background:var(--em);color:#fff;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin:-18px auto 2px;font-size:26px}
+@media(min-width:900px){#bot{display:none}#side{display:block;position:fixed;top:0;bottom:0;left:0;width:230px;background:var(--navy);padding:20px 12px}
+#side a{display:block;color:#cbd5e1;padding:12px 14px;border-radius:12px;margin-bottom:4px}#side a.on{background:#ffffff1f;color:#fff;font-weight:600}
+#side h3{color:#fff;margin:4px 10px 20px}#shell{margin-left:230px}#main{padding:28px}}
+.login{max-width:380px;margin:8vh auto;padding:16px}
+.logo{font-size:44px;text-align:center}
+canvas{max-height:260px}
+.txw{border-bottom:1px solid var(--line)}.txw:last-child{border:0}
+.txw .item{border:0;padding-bottom:6px}
+.txa{display:flex;gap:8px;padding:0 4px 12px 58px}
+.chipn{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:12px;background:var(--bg);font-size:12px}
+.chipn b{display:block;font-size:18px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;cursor:pointer;color:var(--tx);font-size:15px}
+.opt input{width:20px;min-height:20px;margin:2px 0 0}
+/* ---- Cetak A4 ---- */
+.prt{display:none}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 14px}
+.tbl th,.tbl td{border:1px solid #cbd5e1;padding:5px 7px;text-align:left;vertical-align:top}
+.tbl th{background:#eef2f7}.tbl .r{text-align:right;white-space:nowrap}
+.tbl thead{display:table-header-group}.tbl tr{break-inside:avoid;page-break-inside:avoid}
+.ph{border-bottom:2px solid #0f2a4a;padding-bottom:8px;margin-bottom:12px}
+.ph h1{margin:0;font-size:20px}.ph div{font-size:12px;color:#334155}
+.prt h3{font-size:14px;margin:14px 0 4px}
+@page{size:A4 portrait;margin:14mm 12mm}
+@media print{
+  :root,[data-theme=dark]{--bg:#fff;--card:#fff;--tx:#000;--mut:#444;--line:#ccc}
+  html,body{background:#fff!important;color:#000!important;font-size:12px}
+  #side,#bot,#toast,.scr,.modal{display:none!important}
+  #shell{margin:0!important}#main{padding:0!important;max-width:none!important}
+  .prt{display:block!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<script>
+'use strict';
+const API_URL="https://script.google.com/macros/s/AKfycby6vh7OyO6Kw5BXABu-0jJAqtWooODS-a-jzDtgGpauBnA5FIoWHEkI7s6sPv4ZAYg_/exec";
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&!window.Capacitor)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const MON=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+/* rid = nomor rute aktif; dipakai untuk membuang respons dari halaman yang sudah ditinggalkan */
+const S={token:localStorage.getItem('tk')||sessionStorage.getItem('tk'),rid:0,user:null,f:{type:'',q:'',account_id:'',category_id:'',from:'',to:''},charts:[]};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rp=n=>(n<0?'-':'')+'Rp'+Math.abs(Math.round(n||0)).toLocaleString('id-ID');
+const fd=s=>{if(!s)return'';const[y,m,d]=s.split('-');return `${+d} ${MON[m-1]} ${y}`};
+const fm=k=>{const[y,m]=k.split('-');return `${MON[m-1].slice(0,3)} ${y.slice(2)}`};
+const todayISO=()=>new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'})).toLocaleDateString('sv-SE');
+const monthNow=()=>todayISO().slice(0,7);
+const digits=s=>String(s||'').replace(/\D/g,'');
+const fmtIn=v=>{const d=digits(v);return d?Number(d).toLocaleString('id-ID'):''};
+function toast(m,err){const t=$('#toast');t.textContent=m;t.style.background=err?'#b91c1c':'#0f172a';t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',3500)}
+
+/* Aksi baca: respons dibuang bila pengguna sudah pindah halaman (mencegah race condition) */
+const READS=['me','resetPreview','getDashboard','getReport','listTransactions','getTransaction','getFormMeta','listAccounts','listCategories','listBudgets','adminListUsers'];
+async function call(action,p){
+  const rid=S.rid,isRead=action!=='me'&&READS.includes(action);
+  const never=()=>new Promise(()=>{});
+  let r;
+  try{
+    const resp=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,token:S.token,p:p||{}})});
+    r=await resp.json();
+  }catch(e){
+    if(isRead&&rid!==S.rid)return never();
+    throw new Error('Koneksi gagal. Periksa internet Anda.');
+  }
+  if(isRead&&rid!==S.rid)return never();
+  if(!r||!r.ok){
+    if(r&&r.error==='AUTH'){clearAuth();showLogin('Sesi berakhir, silakan login lagi.');return never()}
+    throw new Error(r?r.error:'Gagal');
+  }
+  return r.data;
+}
+function clearAuth(){S.token=null;S.user=null;localStorage.removeItem('tk');sessionStorage.removeItem('tk')}
+function modal(html){closeModal();const m=document.createElement('div');m.className='modal';m.id='modal';m.innerHTML=`<div>${html}</div>`;m.addEventListener('click',e=>{if(e.target===m)closeModal()});document.body.appendChild(m);return m}
+function closeModal(){const m=$('#modal');if(m)m.remove()}
+function kill(){S.charts.forEach(c=>c.destroy());S.charts=[]}
+function chart(id,cfg){const el=$('#'+id);if(!el||!window.Chart)return;S.charts.push(new Chart(el,cfg))}
+const dark=()=>document.documentElement.dataset.theme==='dark';
+function setTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('theme',t)}
+setTheme(localStorage.getItem('theme')||'light');
+async function guard(btn,fn){if(btn)btn.disabled=true;try{await fn()}catch(e){toast(e.message,true)}finally{if(btn)btn.disabled=false}}
+
+/* ---------- AUTH SCREENS ---------- */
+function showLogin(msg,ok){
+  kill();$('#app').innerHTML=`<div class="login"><div class="logo">💰</div><h2 style="text-align:center;margin:6px 0 4px">Personal Finance Tracker</h2><p class="mut" style="text-align:center;margin-top:0">Catatan keuangan pribadi</p>
+  <form class="card" id="lf"><label>Email<input type="email" id="le" autocomplete="username" required></label>
+  <label>Password<div class="row"><input type="password" id="lp" autocomplete="current-password" required><button type="button" class="btn sm" id="sp" style="margin-top:4px">Lihat</button></div></label>
+  <label class="row" style="color:var(--tx)"><input type="checkbox" id="lr" style="width:20px;min-height:20px;margin:0"> Ingat saya</label>
+  <div class="err" id="lerr" style="padding:6px 0 12px;${ok?'color:var(--em)':''}">${esc(msg||'')}</div>
+  <button class="btn p" style="width:100%" id="lb">Masuk</button>
+  <p style="text-align:center;margin-bottom:0"><a href="javascript:void(0)" id="fp" class="b">Lupa password?</a></p></form></div>`;
+  $('#fp').onclick=()=>showForgot($('#le').value);
+  $('#sp').onclick=()=>{const i=$('#lp');i.type=i.type==='password'?'text':'password'};
+  $('#lf').onsubmit=async e=>{e.preventDefault();const b=$('#lb');b.disabled=true;b.textContent='Memproses…';$('#lerr').textContent='';
+    try{const r=await call('login',{email:$('#le').value,password:$('#lp').value,remember:$('#lr').checked});
+      S.token=r.token;S.user=r.user;(S.remember=$('#lr').checked)?localStorage.setItem('tk',r.token):sessionStorage.setItem('tk',r.token);
+      go('#/dashboard')}
+    catch(er){$('#lerr').textContent=er.message;b.disabled=false;b.textContent='Masuk'}}
+}
+function showForceChange(){
+  $('#app').innerHTML=`<div class="login"><div class="logo">🔐</div><h2 style="text-align:center">Aktivasi Akun</h2><p class="mut" style="text-align:center">Buat password baru untuk mengaktifkan akun Anda.</p>
+  <form class="card" id="cf"><label>Password sementara / lama<input type="password" id="op" required></label>
+  <label>Password baru (min. 8, huruf + angka)<input type="password" id="np" required></label>
+  <div class="err" id="cerr" style="padding:4px 0 10px"></div><button class="btn p" style="width:100%" id="cb">Simpan & Masuk</button>
+  <button type="button" class="btn" style="width:100%;margin-top:8px" id="lo">Keluar</button></form></div>`;
+  $('#lo').onclick=logout;
+  $('#cf').onsubmit=async e=>{e.preventDefault();const b=$('#cb');b.disabled=true;
+    try{S.user=await call('changePassword',{old_password:$('#op').value,new_password:$('#np').value});go('#/dashboard')}
+    catch(er){$('#cerr').textContent=er.message;b.disabled=false}}
+}
+function showForgot(prefill){
+  kill();$('#app').innerHTML=`<div class="login"><div class="logo">🔑</div><h2 style="text-align:center">Lupa Password</h2>
+  <form class="card" id="ff1"><p class="mut" style="margin-top:0">Masukkan email akun Anda. Kode 6 digit akan dikirim ke email tersebut (berlaku 15 menit).</p>
+  <label>Email<input type="email" id="fe" value="${esc(prefill||'')}" autocomplete="username" required></label>
+  <div class="err" id="ferr" style="padding:4px 0 10px"></div>
+  <button class="btn p" style="width:100%" id="fb">Kirim kode</button>
+  <button type="button" class="btn" style="width:100%;margin-top:8px" id="fback">Kembali ke login</button></form></div>`;
+  $('#fback').onclick=()=>showLogin();
+  $('#ff1').onsubmit=async e=>{e.preventDefault();const em=$('#fe').value.trim(),b=$('#fb');b.disabled=true;b.textContent='Mengirim…';
+    try{await call('requestReset',{email:em});showReset(em)}
+    catch(er){$('#ferr').textContent=er.message;b.disabled=false;b.textContent='Kirim kode'}};
+}
+function showReset(email){
+  $('#app').innerHTML=`<div class="login"><div class="logo">📩</div><h2 style="text-align:center">Atur Password Baru</h2>
+  <form class="card" id="rf1"><p class="mut" style="margin-top:0">Jika email <b>${esc(email)}</b> terdaftar, kode sudah dikirim. Cek juga folder Spam.</p>
+  <label>Kode 6 digit<input id="rcode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label>
+  <label>Password baru (min. 8, huruf + angka)<input type="password" id="rn1" autocomplete="new-password" required></label>
+  <label>Ulangi password baru<input type="password" id="rn2" autocomplete="new-password" required></label>
+  <div class="err" id="rerr" style="padding:4px 0 10px"></div>
+  <button class="btn p" style="width:100%" id="rb">Simpan password</button>
+  <button type="button" class="btn" style="width:100%;margin-top:8px" id="rback">Kembali ke login</button></form></div>`;
+  $('#rback').onclick=()=>showLogin();
+  $('#rf1').onsubmit=async e=>{e.preventDefault();
+    if($('#rn1').value!==$('#rn2').value){$('#rerr').textContent='Konfirmasi password tidak sama.';return}
+    const b=$('#rb');b.disabled=true;b.textContent='Menyimpan…';
+    try{await call('resetPassword',{email,code:$('#rcode').value,new_password:$('#rn1').value});showLogin('Password berhasil diubah. Silakan login.',true)}
+    catch(er){$('#rerr').textContent=er.message;b.disabled=false;b.textContent='Simpan password'}};
+}
+async function logout(){try{await call('logout')}catch(e){}clearAuth();showLogin()}
+
+/* ---------- SHELL & ROUTER ---------- */
+const NAV=[['dashboard','🏠','Dashboard'],['transactions','🧾','Transaksi'],['accounts','💳','Rekening'],['categories','🏷️','Kategori'],['budgets','🎯','Budget'],['reports','📊','Laporan'],['settings','⚙️','Pengaturan']];
+function shell(){
+  if($('#view'))return;
+  const admin=S.user.role==='owner';
+  $('#app').innerHTML=`<nav id="side"><h3>💰 Finance</h3>${NAV.map(n=>`<a href="#/${n[0]}" data-r="${n[0]}">${n[1]} ${n[2]}</a>`).join('')}${admin?'<a href="#/admin/users" data-r="admin">👥 Kelola Pengguna</a>':''}<a href="#/reset" data-r="reset">🗑️ Reset Data</a></nav>
+  <div id="shell"><main id="main"><div id="view"></div></main></div>
+  <nav id="bot"><a href="#/dashboard" data-r="dashboard"><span>🏠</span>Home</a><a href="#/transactions" data-r="transactions"><span>🧾</span>Transaksi</a>
+  <a href="#/transactions/new" class="add" data-r="new"><span>+</span>Tambah</a><a href="#/reports" data-r="reports"><span>📊</span>Laporan</a><a href="#/more" data-r="more"><span>👤</span>Akun</a></nav>`;
+}
+function setActive(r){$$('#side a,#bot a').forEach(a=>a.classList.toggle('on',a.dataset.r===r||(r==='more'&&['accounts','categories','budgets','settings','admin','reset'].includes(a.dataset.r)&&a.closest('#side'))))}
+async function route(){
+  const rid=++S.rid;           // tandai rute ini sebagai yang terbaru
+  kill();closeModal();
+  if(!S.token)return showLogin();
+  if(!S.user){try{S.user=await call('me')}catch(e){return showLogin()}}
+  if(rid!==S.rid)return;       // pengguna sudah pindah halaman saat menunggu
+  if(S.user.status==='pending')return showForceChange();
+  shell();
+  const h=(S.hash||location.hash||'#/dashboard').slice(2),[path,qs]=h.split('?'),p=path.split('/'),q=new URLSearchParams(qs||'');
+  setActive(p[0]==='transactions'&&p[1]==='new'?'new':p[0]);
+  const v=$('#view');v.innerHTML='<div class="empty">Memuat…</div>';window.scrollTo(0,0);
+  try{
+    if(p[0]==='dashboard')await pgDash();
+    else if(p[0]==='transactions'&&p[1]==='new')await pgForm(null,q);
+    else if(p[0]==='transactions'&&p[1]&&p[2]==='edit')await pgForm(p[1]);
+    else if(p[0]==='transactions'&&p[1])await pgDetail(p[1]);
+    else if(p[0]==='transactions'){Object.assign(S.f,{type:'',q:'',account_id:'',category_id:'',from:'',to:''});for(const[k,val]of q)S.f[k]=val;await pgList()}
+    else if(p[0]==='accounts')await pgAccounts();
+    else if(p[0]==='categories')await pgCats();
+    else if(p[0]==='budgets')await pgBudgets();
+    else if(p[0]==='reports')await pgReports();
+    else if(p[0]==='settings')pgSettings();
+    else if(p[0]==='more')pgMore();
+    else if(p[0]==='admin')await pgAdmin();
+    else if(p[0]==='reset')pgReset();
+    else go('#/dashboard');
+  }catch(e){
+    if(rid!==S.rid)return;     // error dari halaman lama: jangan timpa halaman baru
+    v.innerHTML=`<div class="err">⚠️ ${esc(e.message)}<br><br><button class="btn" onclick="route()">Coba lagi</button></div>`}
+}
+function go(h){S.hash=h;try{location.hash=h}catch(e){}route()}
+window.addEventListener('hashchange',()=>{if(location.hash&&location.hash!==S.hash){S.hash=location.hash;route()}});
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="#/"]');if(a){e.preventDefault();go(a.getAttribute('href'))}});
+
+/* ---------- KOMPONEN ---------- */
+const TI={income:['↓','Pemasukan','inc'],expense:['↑','Pengeluaran','exp'],transfer:['⇄','Transfer','tr']};
+async function delTx(id){
+  if(!confirm('Hapus transaksi ini? Saldo dan laporan akan dihitung ulang.'))return;
+  try{await call('deleteTransaction',{id});toast('Transaksi dihapus');S.dashMonth=null;if(window.listReload)window.listReload()}
+  catch(e){toast(e.message,true)}
+}
+function txRow(t,act){const i=TI[t.type];const acc=t.type==='transfer'?`${esc(t.source_name)} → ${esc(t.destination_name)}`:esc(t.type==='income'?t.destination_name:t.source_name);
+  const core=`<div class="item" onclick="go('#/transactions/${t.id}')"><div class="ico">${esc(t.category_icon)}</div><div class="grow"><div class="b ell">${esc(t.category_name)}</div><div class="mut ell">${esc(t.note||'—')} · ${acc}</div></div>
+  <div style="text-align:right"><div class="b ${i[2]}">${i[0]} ${t.type==='expense'?'-':t.type==='income'?'+':''}${rp(t.amount)}</div><div class="mut">${fd(t.transaction_date).slice(0,-5)}</div></div></div>`;
+  if(!act)return core;
+  return `<div class="txw">${core}<div class="txa"><button class="btn sm" onclick="event.stopPropagation();go('#/transactions/${t.id}/edit')">✏️ Edit</button><button class="btn sm d" onclick="event.stopPropagation();delTx('${t.id}')">🗑️ Hapus</button></div></div>`}
+const barColor=u=>u>100?'var(--red)':u>=80?'var(--amb)':u>=50?'#eab308':'var(--em)';
+const budStatus=u=>u>100?'Melebihi budget':u>=100?'Limit tercapai':u>=80?'Hampir habis':u>=50?'Perhatian':'Aman';
+function chartColors(){return{grid:dark()?'#22314a':'#e2e8f0',tx:dark()?'#8da0b8':'#64748b'}}
+function barCfg(trend){const c=chartColors();return{type:'bar',data:{labels:trend.map(t=>fm(t.month)),datasets:[{label:'Pemasukan',data:trend.map(t=>t.income),backgroundColor:'#10b981',borderRadius:6},{label:'Pengeluaran',data:trend.map(t=>t.expense),backgroundColor:'#ef4444',borderRadius:6}]},
+  options:{responsive:true,plugins:{legend:{labels:{color:c.tx}}},scales:{x:{ticks:{color:c.tx},grid:{display:false}},y:{ticks:{color:c.tx,callback:v=>v>=1e6?v/1e6+'jt':v>=1e3?v/1e3+'rb':v},grid:{color:c.grid}}}}}}
+function donutCfg(b){const c=chartColors();return{type:'doughnut',data:{labels:b.map(x=>x.name),datasets:[{data:b.map(x=>x.amount),backgroundColor:b.map((x,i)=>['#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#64748b'][i%8]),borderWidth:0}]},options:{plugins:{legend:{position:'bottom',labels:{color:c.tx}},tooltip:{callbacks:{label:x=>`${x.label}: ${rp(x.raw)}`}}}}}}
+function monthPicker(val,id){return `<input type="month" id="${id}" value="${val}" style="width:auto;margin:0">`}
+
+/* ---------- DASHBOARD ---------- */
+function budgetCard(list){
+  const head='<div class="row sb"><div class="b">🎯 Status Budget</div><a href="#/budgets">Kelola</a></div>';
+  if(!list.length)return `<div class="card">${head}<div class="empty">Belum ada budget bulan ini. <a href="#/budgets">Atur budget</a></div></div>`;
+  const safe=list.filter(b=>b.usage<80).length,warn=list.filter(b=>b.usage>=80&&b.usage<=100).length,over=list.filter(b=>b.usage>100).length;
+  const tot=list.reduce((a,b)=>a+b.amount,0),used=list.reduce((a,b)=>a+b.actual,0),pct=tot?Math.round(used*1000/tot)/10:0;
+  const sorted=[...list].sort((a,b)=>b.usage-a.usage),show=sorted.slice(0,6);
+  return `<div class="card">${head}
+  <div class="row wrap" style="margin:10px 0"><div class="chipn" style="color:var(--em)"><b>${safe}</b>Aman (&lt;80%)</div><div class="chipn" style="color:var(--amb)"><b>${warn}</b>Hampir habis</div><div class="chipn" style="color:var(--red)"><b>${over}</b>Melebihi budget</div></div>
+  <div class="row sb mut"><span>Total terpakai ${rp(used)} / ${rp(tot)}</span><span>${pct}%</span></div>
+  <div class="bar" style="margin:6px 0 4px"><i style="width:${Math.min(pct,100)}%;background:${barColor(pct)}"></i></div>
+  ${show.map(b=>`<div style="margin-top:14px"><div class="row sb"><span class="b">${esc(b.icon)} ${esc(b.category_name)}</span><span class="badge" style="color:${barColor(b.usage)}">${budStatus(b.usage)}</span></div>
+  <div class="bar" style="margin:6px 0"><i style="width:${Math.min(b.usage,100)}%;background:${barColor(b.usage)}"></i></div>
+  <div class="row sb mut"><span>${rp(b.actual)} / ${rp(b.amount)} (${b.usage}%)</span><span class="${b.remaining<0?'exp':''}">${b.remaining<0?'Lebih '+rp(-b.remaining):'Sisa '+rp(b.remaining)}</span></div></div>`).join('')}
+  ${sorted.length>show.length?`<p class="mut" style="margin-bottom:0"><a href="#/budgets">Lihat ${sorted.length-show.length} budget lainnya</a></p>`:''}</div>`}
+async function pgDash(month){
+  month=month||S.dashMonth||monthNow();S.dashMonth=month;
+  const d=await call('getDashboard',{month});
+  const[y,m]=d.month.split('-');
+  $('#view').innerHTML=`<div class="row sb wrap" style="margin-bottom:12px"><div><div class="mut">Halo, ${esc(S.user.full_name)} 👋</div><h2 style="margin:0">Ringkasan ${MON[m-1]} ${y}</h2></div>${monthPicker(month,'dm')}</div>
+  <div class="card hero"><div class="mut">Total saldo semua rekening</div><div class="big">${rp(d.total_balance)}</div>
+  <div class="row wrap" style="margin-top:12px"><a class="btn sm" href="#/transactions/new?type=income" style="background:#ffffff22;color:#fff;border:0;display:grid;place-items:center">+ Pemasukan</a><a class="btn sm" href="#/transactions/new?type=expense" style="background:#ffffff22;color:#fff;border:0;display:grid;place-items:center">+ Pengeluaran</a><a class="btn sm" href="#/transactions/new?type=transfer" style="background:#ffffff22;color:#fff;border:0;display:grid;place-items:center">⇄ Transfer</a></div></div>
+  <div class="g g2" style="margin-bottom:14px"><div class="card" style="margin:0"><div class="mut">↓ Pemasukan</div><div class="b inc" style="font-size:18px">${rp(d.income)}</div></div>
+  <div class="card" style="margin:0"><div class="mut">↑ Pengeluaran</div><div class="b exp" style="font-size:18px">${rp(d.expense)}</div></div>
+  <div class="card" style="margin:0"><div class="mut">Cash flow</div><div class="b ${d.cashflow>=0?'inc':'exp'}" style="font-size:18px">${d.cashflow>=0?'+':''}${rp(d.cashflow)}</div></div>
+  <div class="card" style="margin:0"><div class="mut">Savings rate</div><div class="b" style="font-size:18px">${d.savings_rate===null?'—':d.savings_rate+'%'}</div></div></div>
+  <div class="g g3"><div class="card"><div class="b" style="margin-bottom:8px">Tren 6 bulan</div><canvas id="c1"></canvas></div>
+  <div class="card"><div class="b" style="margin-bottom:8px">Pengeluaran per kategori</div>${d.breakdown.length?'<canvas id="c2"></canvas>':'<div class="empty">Belum ada pengeluaran bulan ini.</div>'}</div></div>
+  ${budgetCard(d.budgets||[])}
+  <div class="card"><div class="row sb"><div class="b">Rekening</div><a href="#/accounts">Kelola</a></div>${d.accounts.length?d.accounts.map(a=>`<div class="item" onclick="go('#/transactions?account_id=${a.id}')"><div class="ico">${esc(a.icon)}</div><div class="grow b">${esc(a.name)}</div><div class="b ${a.balance<0?'exp':''}">${rp(a.balance)}</div></div>`).join(''):'<div class="empty">Belum ada rekening. <a href="#/accounts">Buat rekening pertama</a></div>'}</div>
+  <div class="card"><div class="row sb"><div class="b">Transaksi terakhir</div><a href="#/transactions">Lihat semua</a></div>${d.recent.length?d.recent.map(t=>txRow(t)).join(''):'<div class="empty">Belum ada transaksi.</div>'}</div>`;
+  $('#dm').onchange=e=>e.target.value&&pgDash(e.target.value);
+  chart('c1',barCfg(d.trend));if(d.breakdown.length)chart('c2',donutCfg(d.breakdown));
+}
+
+/* ---------- RIWAYAT TRANSAKSI ---------- */
+async function pgList(){
+  const meta=await call('getFormMeta');S.meta=meta;
+  $('#view').innerHTML=`<div class="row sb" style="margin-bottom:12px"><h2 style="margin:0">Transaksi</h2><a class="btn p sm" style="display:grid;place-items:center" href="#/transactions/new">+ Tambah</a></div>
+  <div class="chips" id="tc">${[['','Semua'],['income','Pemasukan'],['expense','Pengeluaran'],['transfer','Transfer']].map(x=>`<button class="chip ${S.f.type===x[0]?'on':''}" data-t="${x[0]}">${x[1]}</button>`).join('')}</div>
+  <div class="card"><input id="fq" placeholder="🔍 Cari catatan / referensi" value="${esc(S.f.q)}" style="margin:0 0 8px">
+  <div class="g g2"><select id="fa"><option value="">Semua rekening</option>${meta.accounts.map(a=>`<option value="${a.id}" ${S.f.account_id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
+  <select id="fc"><option value="">Semua kategori</option>${meta.categories.map(k=>`<option value="${k.id}" ${S.f.category_id===k.id?'selected':''}>${esc(k.icon+' '+k.name)}</option>`).join('')}</select>
+  <input type="date" id="ff" value="${S.f.from}"><input type="date" id="ft" value="${S.f.to}"></div></div>
+  <div id="lst"></div><div id="more" style="text-align:center"></div>`;
+  let page=1;
+  const load=async(reset)=>{
+    let L=$('#lst');if(!L)return;
+    if(reset){page=1;L.innerHTML='';L.dataset.last=''}
+    const r=await call('listTransactions',{...S.f,page,size:30});
+    L=$('#lst');const M=$('#more');
+    if(!L||!M)return;          // halaman sudah ditinggalkan
+    if(reset&&!r.items.length){L.innerHTML='<div class="empty">Tidak ada transaksi yang cocok.</div>';M.innerHTML='';return}
+    let last=reset?'':(L.dataset.last||''),html='';
+    r.items.forEach(t=>{if(t.transaction_date!==last){html+=`${last!==''&&!reset||html?'</div>':''}<div class="dh">${fd(t.transaction_date)}</div><div class="card" style="padding:4px 12px;margin-bottom:6px">`;last=t.transaction_date}html+=txRow(t,true)});
+    L.dataset.last=last;L.insertAdjacentHTML('beforeend',html+'</div>');
+    M.innerHTML=page*30<r.total?'<button class="btn" id="lm">Muat lebih banyak</button>':`<div class="mut">${r.total} transaksi</div>`;
+    const lm=$('#lm');if(lm)lm.onclick=()=>{page++;guard(lm,()=>load(false))}};
+  const reload=()=>guard(null,()=>load(true));
+  window.listReload=reload;
+  $('#tc').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;S.f.type=b.dataset.t;$$('#tc .chip').forEach(c=>c.classList.toggle('on',c===b));reload()};
+  let tm;$('#fq').oninput=e=>{S.f.q=e.target.value;clearTimeout(tm);tm=setTimeout(reload,350)};
+  $('#fa').onchange=e=>{S.f.account_id=e.target.value;reload()};$('#fc').onchange=e=>{S.f.category_id=e.target.value;reload()};
+  $('#ff').onchange=e=>{S.f.from=e.target.value;reload()};$('#ft').onchange=e=>{S.f.to=e.target.value;reload()};
+  await load(true);
+}
+
+/* ---------- DETAIL ---------- */
+async function pgDetail(id){
+  const t=await call('getTransaction',{id}),i=TI[t.type];
+  const row=(a,b)=>`<div class="row sb" style="padding:10px 0;border-bottom:1px solid var(--line)"><span class="mut">${a}</span><span class="b" style="text-align:right">${b}</span></div>`;
+  $('#view').innerHTML=`<a href="#/transactions">← Kembali</a><div class="card" style="margin-top:12px"><div style="text-align:center;padding:10px"><div class="ico" style="margin:0 auto 8px">${esc(t.category_icon)}</div><div class="big ${i[2]}">${i[0]} ${rp(t.amount)}</div><span class="badge">${i[1]}</span></div>
+  ${row('Kategori',esc(t.category_name))}${row('Tanggal',fd(t.transaction_date))}
+  ${t.type!=='income'?row(t.type==='transfer'?'Dari rekening':'Rekening',esc(t.source_name)):''}${t.type!=='expense'?row(t.type==='transfer'?'Ke rekening':'Rekening',esc(t.destination_name)):''}
+  ${row('Catatan',esc(t.note||'—'))}${t.reference_number?row('No. referensi',esc(t.reference_number)):''}${row('Dibuat',esc(t.created_at.slice(0,16).replace('T',' ')))}${row('Terakhir diubah',esc(t.updated_at.slice(0,16).replace('T',' ')))}
+  <div class="row" style="margin-top:16px"><a class="btn grow" style="display:grid;place-items:center" href="#/transactions/${id}/edit">✏️ Edit</a><button class="btn d grow" id="del">🗑️ Hapus</button></div></div>`;
+  $('#del').onclick=()=>{if(!confirm('Hapus transaksi ini? Saldo dan laporan akan dihitung ulang.'))return;guard($('#del'),async()=>{await call('deleteTransaction',{id});toast('Transaksi dihapus');go('#/transactions')})};
+}
+
+/* ---------- FORM TRANSAKSI ---------- */
+async function pgForm(id,q){
+  const meta=await call('getFormMeta');let tx=null;
+  if(id)tx=await call('getTransaction',{id});
+  let type=tx?tx.type:(q&&q.get('type'))||'expense';
+  const reqId=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  const draw=()=>{
+    const accOpts=(sel,key)=>`<option value="">Pilih rekening</option>`+meta.accounts.filter(a=>a.is_active||(tx&&tx[key]===a.id)).map(a=>`<option value="${a.id}" ${sel===a.id?'selected':''}>${esc(a.icon+' '+a.name)}</option>`).join('');
+    const cats=meta.categories.filter(k=>k.type===type&&(k.is_active||(tx&&tx.category_id===k.id)));
+    const sv=type==='income'?'':($('#fs')?$('#fs').value:(tx?tx.source_account_id:''));
+    const dv=type==='expense'?'':($('#fdst')?$('#fdst').value:(tx?tx.destination_account_id:''));
+    const keep={amt:$('#fa')?$('#fa').value:(tx?fmtIn(tx.amount):''),date:$('#fdt')?$('#fdt').value:(tx?tx.transaction_date:todayISO()),note:$('#fn')?$('#fn').value:(tx?tx.note:''),cat:$('#fk')?$('#fk').value:(tx?tx.category_id:'')};
+    $('#view').innerHTML=`<a href="#/transactions">← Kembali</a><h2>${id?'Edit':'Tambah'} Transaksi</h2>
+    <form class="card" id="tf"><div class="seg" id="ts">${['income','expense','transfer'].map(t=>`<button type="button" data-t="${t}" class="${type===t?'on':''}" ${id&&tx.type!==t?'disabled':''}>${TI[t][0]} ${TI[t][1]}</button>`).join('')}</div>
+    <label>Nominal (Rp)<input id="fa" inputmode="numeric" placeholder="0" value="${keep.amt}" style="font-size:24px;font-weight:700" required></label>
+    <label>Tanggal<input type="date" id="fdt" value="${keep.date}" required></label>
+    ${type!=='income'?`<label>${type==='transfer'?'Dari rekening':'Rekening'}<select id="fs">${accOpts(sv,'source_account_id')}</select></label>`:''}
+    ${type!=='expense'?`<label>${type==='transfer'?'Ke rekening':'Rekening'}<select id="fdst">${accOpts(dv,'destination_account_id')}</select></label>`:''}
+    ${type!=='transfer'?`<label>Kategori<select id="fk"><option value="">Pilih kategori</option>${cats.map(k=>`<option value="${k.id}" ${keep.cat===k.id?'selected':''}>${esc(k.icon+' '+k.name)}</option>`).join('')}</select></label>`:''}
+    <label>Catatan (opsional)<input id="fn" maxlength="300" value="${esc(keep.note)}"></label>
+    <button class="btn p" style="width:100%" id="sv">Simpan</button></form>`;
+    $('#fa').oninput=e=>e.target.value=fmtIn(e.target.value);
+    $('#ts').onclick=e=>{const b=e.target.closest('[data-t]');if(b&&!b.disabled&&b.dataset.t!==type){type=b.dataset.t;draw()}};
+    if(!id)$('#fa').focus();
+    $('#tf').onsubmit=e=>{e.preventDefault();const amt=Number(digits($('#fa').value));
+      if(!amt)return toast('Nominal wajib lebih dari 0',true);
+      const p={type,amount:amt,transaction_date:$('#fdt').value,note:$('#fn').value,source_account_id:$('#fs')?$('#fs').value:'',destination_account_id:$('#fdst')?$('#fdst').value:'',category_id:$('#fk')?$('#fk').value:''};
+      if(type==='transfer'&&p.source_account_id&&p.source_account_id===p.destination_account_id)return toast('Rekening sumber dan tujuan tidak boleh sama',true);
+      if(id)p.id=id;else p.request_id=reqId;
+      guard($('#sv'),async()=>{const r=await call(id?'updateTransaction':'createTransaction',p);toast(id?'Transaksi diperbarui':'Transaksi tersimpan');
+        if(r.warnings&&r.warnings.length)setTimeout(()=>toast('⚠️ '+r.warnings.join(' '),true),1800);
+        S.dashMonth=null;go('#/transactions')})};
+  };
+  if(!meta.accounts.some(a=>a.is_active)){$('#view').innerHTML='<div class="empty">Buat rekening terlebih dahulu.<br><br><a class="btn p" style="display:inline-grid;place-items:center" href="#/accounts">Ke halaman Rekening</a></div>';return}
+  draw();
+}
+
+/* ---------- REKENING ---------- */
+const ATYPE={cash:'Tunai',bank:'Bank',ewallet:'E-wallet',savings:'Tabungan',other:'Lainnya'};
+async function pgAccounts(){
+  const r=await call('listAccounts');
+  $('#view').innerHTML=`<div class="row sb" style="margin-bottom:12px"><h2 style="margin:0">Rekening</h2><button class="btn p sm" id="na">+ Tambah</button></div>
+  <div class="card hero"><div class="mut">Total saldo</div><div class="big">${rp(r.total)}</div></div>
+  <div class="card">${r.accounts.length?r.accounts.map(a=>`<div class="item" data-id="${a.id}"><div class="ico" style="background:${esc(a.color)}33">${esc(a.icon)}</div><div class="grow"><div class="b">${esc(a.name)} ${a.is_active?'':'<span class="badge">Nonaktif</span>'}</div><div class="mut">${ATYPE[a.account_type]} · Saldo awal ${rp(a.opening_balance)}</div></div><div class="b ${a.balance<0?'exp':''}">${rp(a.balance)}</div></div>`).join(''):'<div class="empty">Belum ada rekening.</div>'}</div>`;
+  $('#na').onclick=()=>accForm(null);
+  $$('.item[data-id]').forEach(el=>el.onclick=()=>accForm(r.accounts.find(a=>a.id===el.dataset.id)));
+}
+function accForm(a){
+  const m=modal(`<h3 style="margin-top:0">${a?'Edit':'Tambah'} Rekening</h3><form id="af"><label>Nama<input id="an" maxlength="40" value="${esc(a?a.name:'')}" required></label>
+  <label>Jenis<select id="at">${Object.entries(ATYPE).map(([k,v])=>`<option value="${k}" ${a&&a.account_type===k?'selected':''}>${v}</option>`).join('')}</select></label>
+  <label>Saldo awal (Rp)<input id="ao" inputmode="numeric" value="${fmtIn(a?a.opening_balance:0)}"></label>
+  <div class="row"><label class="grow">Icon<input id="ai" maxlength="4" value="${esc(a?a.icon:'💳')}"></label><label class="grow">Warna<input type="color" id="ac" value="${esc(a?a.color:'#0ea5e9')}" style="padding:4px"></label></div>
+  ${a?`<label class="row" style="color:var(--tx)"><input type="checkbox" id="aa" ${a.is_active?'checked':''} style="width:20px;min-height:20px;margin:0"> Rekening aktif</label>`:''}
+  <div class="row"><button type="button" class="btn grow" onclick="closeModal()">Batal</button><button class="btn p grow" id="asv">Simpan</button></div></form>`);
+  $('#ao').oninput=e=>e.target.value=fmtIn(e.target.value);
+  $('#af').onsubmit=e=>{e.preventDefault();const p={id:a?a.id:undefined,name:$('#an').value,account_type:$('#at').value,opening_balance:Number(digits($('#ao').value)),icon:$('#ai').value,color:$('#ac').value};if(a)p.is_active=$('#aa').checked;
+    guard($('#asv'),async()=>{try{await call('saveAccount',p)}catch(er){if(er.message==='KONFIRMASI_SALDO_AWAL'){if(!confirm('Rekening ini sudah punya transaksi. Mengubah saldo awal akan mengubah saldo saat ini. Lanjutkan?'))return;await call('saveAccount',{...p,confirm_opening:true})}else throw er}
+      closeModal();toast('Rekening disimpan');pgAccounts()})};
+}
+
+/* ---------- KATEGORI ---------- */
+async function pgCats(){
+  const cs=await call('listCategories');
+  const grp=(t,title)=>`<div class="card"><div class="b" style="margin-bottom:6px">${title}</div>${cs.filter(k=>k.type===t).map(k=>`<div class="item" data-id="${k.id}"><div class="ico" style="background:${esc(k.color)}33">${esc(k.icon)}</div><div class="grow b">${esc(k.name)}</div>${k.is_active?'':'<span class="badge">Nonaktif</span>'}</div>`).join('')||'<div class="empty">Kosong</div>'}</div>`;
+  $('#view').innerHTML=`<div class="row sb" style="margin-bottom:12px"><h2 style="margin:0">Kategori</h2><button class="btn p sm" id="nc">+ Tambah</button></div><div class="g g3">${grp('income','Pemasukan')}${grp('expense','Pengeluaran')}</div>
+  <p class="mut">Kategori yang sudah dipakai tidak dihapus, cukup dinonaktifkan.</p>`;
+  $('#nc').onclick=()=>catForm(null);$$('.item[data-id]').forEach(el=>el.onclick=()=>catForm(cs.find(k=>k.id===el.dataset.id)));
+}
+function catForm(k){
+  modal(`<h3 style="margin-top:0">${k?'Edit':'Tambah'} Kategori</h3><form id="kf"><label>Nama<input id="kn" maxlength="40" value="${esc(k?k.name:'')}" required></label>
+  <label>Jenis<select id="kt"><option value="expense" ${k&&k.type==='expense'?'selected':''}>Pengeluaran</option><option value="income" ${k&&k.type==='income'?'selected':''}>Pemasukan</option></select></label>
+  <div class="row"><label class="grow">Icon<input id="ki" maxlength="4" value="${esc(k?k.icon:'🏷️')}"></label><label class="grow">Warna<input type="color" id="kc" value="${esc(k?k.color:'#ef4444')}" style="padding:4px"></label></div>
+  ${k?`<label class="row" style="color:var(--tx)"><input type="checkbox" id="ka" ${k.is_active?'checked':''} style="width:20px;min-height:20px;margin:0"> Kategori aktif</label>`:''}
+  <div class="row"><button type="button" class="btn grow" onclick="closeModal()">Batal</button><button class="btn p grow" id="ksv">Simpan</button></div></form>`);
+  $('#kf').onsubmit=e=>{e.preventDefault();const p={id:k?k.id:undefined,name:$('#kn').value,type:$('#kt').value,icon:$('#ki').value,color:$('#kc').value};if(k)p.is_active=$('#ka').checked;
+    guard($('#ksv'),async()=>{await call('saveCategory',p);closeModal();toast('Kategori disimpan');pgCats()})};
+}
+
+/* ---------- BUDGET ---------- */
+async function pgBudgets(month){
+  month=month||S.budMonth||monthNow();S.budMonth=month;
+  const d=await call('listBudgets',{month});
+  $('#view').innerHTML=`<div class="row sb wrap" style="margin-bottom:12px"><h2 style="margin:0">Budget</h2><div class="row">${monthPicker(month,'bm')}<button class="btn p sm" id="nb">+ Budget</button></div></div>
+  ${d.items.length?d.items.map(b=>`<div class="card" data-id="${b.id}" style="cursor:pointer"><div class="row sb"><div class="b">${esc(b.icon)} ${esc(b.category_name)}</div><div class="row" style="gap:8px"><span class="badge" style="color:${barColor(b.usage)}">${budStatus(b.usage)}</span><button class="btn sm" type="button">✏️ Edit</button></div></div>
+  <div class="bar" style="margin:10px 0"><i style="width:${Math.min(b.usage,100)}%;background:${barColor(b.usage)}"></i></div>
+  <div class="row sb mut"><span>${rp(b.actual)} / ${rp(b.amount)} (${b.usage}%)</span><span class="${b.remaining<0?'exp':''}">${b.remaining<0?'Lebih '+rp(-b.remaining):'Sisa '+rp(b.remaining)}</span></div></div>`).join(''):'<div class="card empty">Belum ada budget untuk bulan ini.</div>'}`;
+  $('#bm').onchange=e=>e.target.value&&pgBudgets(e.target.value);
+  const form=b=>{modal(`<h3 style="margin-top:0">${b?'Edit':'Atur'} Budget</h3><form id="bf"><label>Kategori<select id="bc" ${b?'disabled':''}>${d.categories.map(k=>`<option value="${k.id}" ${b&&b.category_id===k.id?'selected':''}>${esc(k.icon+' '+k.name)}</option>`).join('')}</select></label>
+    <label>Batas (Rp)<input id="ba" inputmode="numeric" value="${b?fmtIn(b.amount):''}" required></label>
+    <div class="row">${b?'<button type="button" class="btn d" id="bd">Hapus</button>':''}<button type="button" class="btn grow" onclick="closeModal()">Batal</button><button class="btn p grow" id="bs">Simpan</button></div></form>`);
+    $('#ba').oninput=e=>e.target.value=fmtIn(e.target.value);
+    $('#bf').onsubmit=e=>{e.preventDefault();guard($('#bs'),async()=>{await call('saveBudget',{month,category_id:b?b.category_id:$('#bc').value,amount:Number(digits($('#ba').value))});closeModal();toast('Budget disimpan');pgBudgets(month)})};
+    if(b)$('#bd').onclick=()=>{if(confirm('Hapus budget ini?'))guard($('#bd'),async()=>{await call('deleteBudget',{id:b.id});closeModal();pgBudgets(month)})}};
+  $('#nb').onclick=()=>d.categories.length?form(null):toast('Buat kategori pengeluaran dahulu',true);
+  $$('.card[data-id]').forEach(el=>el.onclick=()=>form(d.items.find(b=>b.id===el.dataset.id)));
+}
+
+/* ---------- LAPORAN ---------- */
+async function pgReports(){
+  const meta=await call('getFormMeta');
+  const mk=monthNow(),last=new Date(+mk.slice(0,4),+mk.slice(5),0).getDate();
+  const R=S.rf=S.rf||{from:mk+'-01',to:mk+'-'+String(last).padStart(2,'0'),type:'',account_id:'',category_id:''};
+  $('#view').innerHTML=`<div class="scr row sb wrap" style="margin-bottom:12px"><h2 style="margin:0">Laporan</h2><button class="btn p sm" id="rprint">🖨️ Cetak A4</button></div><div class="card scr"><div class="g g2"><label>Dari<input type="date" id="rf" value="${R.from}"></label><label>Sampai<input type="date" id="rt" value="${R.to}"></label>
+  <label>Rekening<select id="ra"><option value="">Semua</option>${meta.accounts.map(a=>`<option value="${a.id}" ${R.account_id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></label>
+  <label>Kategori<select id="rc"><option value="">Semua</option>${meta.categories.map(k=>`<option value="${k.id}" ${R.category_id===k.id?'selected':''}>${esc(k.name)} (${k.type==='income'?'masuk':'keluar'})</option>`).join('')}</select></label></div>
+  <div class="row"><button class="btn sm" id="rm">Bulan ini</button><button class="btn sm" id="rl">Bulan lalu</button><button class="btn sm" id="ry">Tahun ini</button></div></div><div id="rb"></div>`;
+  const printBlock=d=>{
+    const acc=meta.accounts.find(a=>a.id===R.account_id),cat=meta.categories.find(k=>k.id===R.category_id);
+    const filt=[acc?'Rekening: '+acc.name:'',cat?'Kategori: '+cat.name:''].filter(Boolean).join(' · ')||'Semua rekening & kategori';
+    const jenis={income:'Masuk',expense:'Keluar',transfer:'Transfer'};
+    const rek=t=>t.type==='transfer'?`${t.source_name} → ${t.destination_name}`:(t.type==='income'?t.destination_name:t.source_name);
+    const amt=t=>(t.type==='expense'?'-':t.type==='income'?'+':'')+rp(t.amount);
+    const when=new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta'});
+    return `<div class="prt">
+    <div class="ph"><h1>Laporan Keuangan</h1><div>Periode: <b>${fd(d.from)} – ${fd(d.to)}</b></div><div>${esc(filt)}</div><div>Nama: ${esc(S.user.full_name)} · Dicetak: ${esc(when)} WIB</div></div>
+    <h3>Ringkasan</h3>
+    <table class="tbl"><thead><tr><th>Keterangan</th><th class="r">Periode ini</th><th class="r">Periode sebelumnya</th></tr></thead><tbody>
+    <tr><td>Total pemasukan</td><td class="r">${rp(d.income)}</td><td class="r">${rp(d.prev.income)}</td></tr>
+    <tr><td>Total pengeluaran</td><td class="r">${rp(d.expense)}</td><td class="r">${rp(d.prev.expense)}</td></tr>
+    <tr><td><b>Cash flow (selisih)</b></td><td class="r"><b>${rp(d.cashflow)}</b></td><td class="r">${rp(d.prev.cashflow)}</td></tr>
+    <tr><td>Jumlah transaksi</td><td class="r">${d.count}</td><td class="r">—</td></tr></tbody></table>
+    <div style="font-size:11px;color:#475569">Transfer antar rekening tidak dihitung sebagai pemasukan/pengeluaran.</div>
+    ${d.by_category.length?`<h3>Pengeluaran per kategori</h3><table class="tbl"><thead><tr><th style="width:30px">No</th><th>Kategori</th><th class="r">Nominal</th><th class="r">Persen</th></tr></thead><tbody>${d.by_category.map((k,i)=>`<tr><td>${i+1}</td><td>${esc(k.icon)} ${esc(k.name)}</td><td class="r">${rp(k.amount)}</td><td class="r">${k.percent}%</td></tr>`).join('')}</tbody></table>`:''}
+    <h3>Rincian transaksi</h3>
+    ${d.rows.length?`<table class="tbl"><thead><tr><th style="width:28px">No</th><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Rekening</th><th>Catatan</th><th class="r">Nominal</th></tr></thead><tbody>${d.rows.map((t,i)=>`<tr><td>${i+1}</td><td>${fd(t.transaction_date)}</td><td>${jenis[t.type]}</td><td>${esc(t.category_name)}</td><td>${esc(rek(t))}</td><td>${esc(t.note||'')}</td><td class="r">${amt(t)}</td></tr>`).join('')}</tbody></table>`:'<div style="font-size:12px">Tidak ada transaksi pada periode ini.</div>'}
+    ${d.truncated?`<div style="font-size:11px;color:#b91c1c">Hanya ${d.rows.length} transaksi pertama yang dicetak dari total ${d.count}. Persempit periode agar semua tercetak.</div>`:''}
+    </div>`};
+  const run=async()=>{R.from=$('#rf').value;R.to=$('#rt').value;R.account_id=$('#ra').value;R.category_id=$('#rc').value;
+    kill();$('#rb').innerHTML='<div class="empty">Memuat…</div>';
+    try{const d=await call('getReport',R);
+      if(!$('#rb'))return;
+      const cmp=(a,b,inv)=>{if(!b)return a?'<span class="mut">baru</span>':'<span class="mut">—</span>';const p=Math.round((a-b)*100/b);return `<span class="${(inv?p<=0:p>=0)?'inc':'exp'}">${p>=0?'▲':'▼'} ${Math.abs(p)}%</span>`};
+      $('#rb').innerHTML=`<div class="scr"><div class="g g2" style="margin-bottom:14px"><div class="card" style="margin:0"><div class="mut">↓ Total pemasukan</div><div class="b inc" style="font-size:18px">${rp(d.income)}</div><div class="mut">vs periode lalu ${cmp(d.income,d.prev.income)}</div></div>
+      <div class="card" style="margin:0"><div class="mut">↑ Total pengeluaran</div><div class="b exp" style="font-size:18px">${rp(d.expense)}</div><div class="mut">vs periode lalu ${cmp(d.expense,d.prev.expense,true)}</div></div>
+      <div class="card" style="margin:0"><div class="mut">Cash flow</div><div class="b ${d.cashflow>=0?'inc':'exp'}" style="font-size:18px">${rp(d.cashflow)}</div><div class="mut">Periode lalu ${rp(d.prev.cashflow)}</div></div></div>
+      <p class="mut">Transfer antar rekening tidak dihitung sebagai pemasukan/pengeluaran.</p>
+      <div class="g g3"><div class="card"><div class="b" style="margin-bottom:8px">Pemasukan vs pengeluaran</div>${d.trend.length?'<canvas id="r1"></canvas>':'<div class="empty">Tidak ada data.</div>'}</div>
+      <div class="card"><div class="b" style="margin-bottom:8px">Kategori pengeluaran</div>${d.by_category.length?'<canvas id="r2"></canvas>':'<div class="empty">Tidak ada pengeluaran.</div>'}</div></div>
+      ${d.by_category.length?`<div class="card"><div class="b">Peringkat kategori</div>${d.by_category.map((k,i)=>`<div style="margin-top:12px"><div class="row sb"><span>${i+1}. ${esc(k.icon)} ${esc(k.name)}</span><span class="b">${rp(k.amount)} · ${k.percent}%</span></div><div class="bar" style="margin-top:6px"><i style="width:${k.percent}%;background:${esc(k.color)}"></i></div></div>`).join('')}</div>`:''}
+      <a class="btn" style="display:grid;place-items:center" href="#/transactions?from=${d.from}&to=${d.to}">Lihat ${d.count} transaksi periode ini</a></div>${printBlock(d)}`;
+      if(d.trend.length)chart('r1',barCfg(d.trend));if(d.by_category.length)chart('r2',donutCfg(d.by_category))}
+    catch(e){if($('#rb'))$('#rb').innerHTML=`<div class="err">${esc(e.message)}</div>`}};
+  ['rf','rt','ra','rc'].forEach(i=>$('#'+i).onchange=run);
+  const setR=(f,t)=>{$('#rf').value=f;$('#rt').value=t;run()};
+  const ld=(y,m)=>new Date(y,m,0).getDate(),Y=+mk.slice(0,4),M=+mk.slice(5);
+  $('#rm').onclick=()=>setR(mk+'-01',mk+'-'+ld(Y,M));
+  $('#rl').onclick=()=>{const py=M===1?Y-1:Y,pm=M===1?12:M-1,k=py+'-'+String(pm).padStart(2,'0');setR(k+'-01',k+'-'+ld(py,pm))};
+  $('#ry').onclick=()=>setR(Y+'-01-01',Y+'-12-31');
+  $('#rprint').onclick=()=>{try{window.print()}catch(e){toast('Tekan Ctrl+P untuk mencetak',true)}};
+  run();
+}
+
+/* ---------- PENGATURAN & LAINNYA ---------- */
+function pgMore(){
+  const it=(h,i,t)=>`<a class="item" href="${h}" style="color:var(--tx)"><div class="ico">${i}</div><div class="grow b">${t}</div><span class="mut">›</span></a>`;
+  $('#view').innerHTML=`<h2 style="margin-top:0">Akun & Menu</h2><div class="card"><div class="b">${esc(S.user.full_name)}</div><div class="mut">${esc(S.user.email)} · ${S.user.role}</div></div>
+  <div class="card">${it('#/accounts','💳','Rekening')}${it('#/categories','🏷️','Kategori')}${it('#/budgets','🎯','Budget')}${it('#/settings','⚙️','Pengaturan')}${S.user.role==='owner'?it('#/admin/users','👥','Kelola Pengguna'):''}${it('#/reset','🗑️','Reset Data')}</div><button class="btn d" style="width:100%" id="lo2">Keluar</button>`;
+  $('#lo2').onclick=logout;
+}
+function pgSettings(){
+  $('#view').innerHTML=`<h2 style="margin-top:0">Pengaturan</h2>
+  <form class="card" id="pf"><div class="b" style="margin-bottom:8px">Profil</div><label>Nama<input id="pn" value="${esc(S.user.full_name)}" required></label><label>Email<input value="${esc(S.user.email)}" disabled></label>
+  <label>Role · Status<input value="${S.user.role} · ${S.user.status}" disabled></label><button class="btn p" id="pb">Simpan profil</button></form>
+  <div class="card"><div class="b" style="margin-bottom:8px">Tampilan</div><div class="seg"><button type="button" id="tl" class="${dark()?'':'on'}">☀️ Terang</button><button type="button" id="td" class="${dark()?'on':''}">🌙 Gelap</button></div>
+  <div class="mut">Mata uang: Rupiah (IDR) · Zona waktu: WIB (Asia/Jakarta)</div></div>
+  <form class="card" id="wf"><div class="b" style="margin-bottom:8px">Ganti password</div><label>Password lama<input type="password" id="wo" required></label><label>Password baru (min. 8, huruf + angka)<input type="password" id="wn" required></label><button class="btn p" id="wb">Ganti password</button></form>
+  <button class="btn d" style="width:100%" id="lo3">Keluar</button>
+  <p class="mut">Tips: untuk memasang seperti aplikasi, buka di Chrome/Safari lalu pilih "Tambahkan ke layar utama".</p>`;
+  $('#pf').onsubmit=e=>{e.preventDefault();guard($('#pb'),async()=>{S.user=await call('updateProfile',{full_name:$('#pn').value});toast('Profil disimpan')})};
+  $('#wf').onsubmit=e=>{e.preventDefault();guard($('#wb'),async()=>{S.user=await call('changePassword',{old_password:$('#wo').value,new_password:$('#wn').value});$('#wf').reset();toast('Password diganti')})};
+  $('#tl').onclick=()=>{setTheme('light');pgSettings()};$('#td').onclick=()=>{setTheme('dark');pgSettings()};$('#lo3').onclick=logout;
+}
+
+/* ---------- ADMIN ---------- */
+const STAT={active:'Aktif',inactive:'Nonaktif',pending:'Menunggu',suspended:'Ditangguhkan'};
+async function pgAdmin(){
+  if(S.user.role!=='owner'){$('#view').innerHTML='<div class="err">Akses ditolak.</div>';return}
+  const us=await call('adminListUsers');
+  $('#view').innerHTML=`<div class="row sb" style="margin-bottom:12px"><h2 style="margin:0">Kelola Pengguna</h2><button class="btn p sm" id="iu">+ Undang</button></div>
+  <input id="us" placeholder="🔍 Cari nama / email" style="margin-bottom:12px"><div class="card" id="ul"></div>
+  <p class="mut">Owner tidak dapat membaca data keuangan pengguna lain. Aplikasi ini hanya menampilkan data akun.</p>`;
+  const paint=()=>{const q=$('#us').value.toLowerCase();$('#ul').innerHTML=us.filter(u=>(u.full_name+u.email).toLowerCase().includes(q)).map(u=>`<div class="item" data-id="${u.id}"><div class="ico">👤</div><div class="grow"><div class="b">${esc(u.full_name)}</div><div class="mut ell">${esc(u.email)}</div></div><div style="text-align:right"><span class="badge">${u.role}</span> <span class="badge">${STAT[u.status]}</span></div></div>`).join('')||'<div class="empty">Tidak ada pengguna.</div>';
+    $$('.item[data-id]',$('#ul')).forEach(el=>el.onclick=()=>edit(us.find(u=>u.id===el.dataset.id)))};
+  $('#us').oninput=paint;paint();
+  const showTemp=(r,email)=>modal(`<h3 style="margin-top:0">Password sementara</h3><p>${r.mailed?'Email berisi password sementara sudah dikirim ke '+esc(email)+'.':'Email gagal dikirim. Berikan password ini secara langsung:'}</p><div class="card big" style="text-align:center;user-select:all">${esc(r.temp_password)}</div><p class="mut">Hanya ditampilkan sekali. Pengguna wajib menggantinya saat login pertama.</p><button class="btn p" style="width:100%" onclick="closeModal();pgAdmin()">Selesai</button>`);
+  $('#iu').onclick=()=>{modal(`<h3 style="margin-top:0">Undang Pengguna</h3><form id="if"><label>Nama<input id="in" required></label><label>Email<input type="email" id="ie" required></label><label>Role<select id="ir"><option value="user">User</option><option value="owner">Owner</option></select></label><div class="row"><button type="button" class="btn grow" onclick="closeModal()">Batal</button><button class="btn p grow" id="ib">Buat akun</button></div></form>`);
+    $('#if').onsubmit=e=>{e.preventDefault();const email=$('#ie').value;guard($('#ib'),async()=>{const r=await call('adminInvite',{full_name:$('#in').value,email,role:$('#ir').value});showTemp(r,email)})}};
+  const edit=u=>{const self=u.id===S.user.id;modal(`<h3 style="margin-top:0">Edit Pengguna</h3><form id="ef"><label>Nama<input id="en" value="${esc(u.full_name)}" required></label><label>Email<input value="${esc(u.email)}" disabled></label>
+    <label>Role<select id="er" ${self?'disabled':''}><option value="user" ${u.role==='user'?'selected':''}>User</option><option value="owner" ${u.role==='owner'?'selected':''}>Owner</option></select></label>
+    <label>Status<select id="es" ${self?'disabled':''}>${Object.entries(STAT).map(([k,v])=>`<option value="${k}" ${u.status===k?'selected':''}>${v}</option>`).join('')}</select></label>
+    ${self?'<p class="mut">Akun sendiri tidak bisa diubah role/statusnya.</p>':''}
+    <div class="row wrap">${self?'':'<button type="button" class="btn sm" id="er2">Reset password</button><button type="button" class="btn sm d" id="ed">Hapus</button>'}<span class="grow"></span><button type="button" class="btn" onclick="closeModal()">Batal</button>${self?'':'<button class="btn p" id="eb">Simpan</button>'}</div></form>`);
+    if(self)return;
+    $('#ef').onsubmit=e=>{e.preventDefault();guard($('#eb'),async()=>{await call('adminUpdate',{id:u.id,full_name:$('#en').value,role:$('#er').value,status:$('#es').value});closeModal();toast('Pengguna diperbarui');pgAdmin()})};
+    $('#er2').onclick=()=>{if(confirm('Reset password pengguna ini? Semua sesi aktifnya akan dicabut.'))guard($('#er2'),async()=>showTemp(await call('adminReset',{id:u.id}),u.email))};
+    $('#ed').onclick=()=>{if(confirm('Hapus pengguna ini permanen?'))guard($('#ed'),async()=>{await call('adminDelete',{id:u.id});closeModal();toast('Pengguna dihapus');pgAdmin()})}};
+}
+
+/* ---------- RESET DATA ---------- */
+function pgReset(){
+  const mk=monthNow(),last=new Date(+mk.slice(0,4),+mk.slice(5),0).getDate();
+  $('#view').innerHTML=`<h2 style="margin-top:0">Reset Data</h2>
+  <form class="card" id="xf"><div class="b" style="margin-bottom:10px">Pilih cakupan transaksi yang direset</div>
+  <label class="opt"><input type="radio" name="xm" value="period" checked><span><b>Sebagian — periode tertentu</b><br><span class="mut">Hanya transaksi pada rentang tanggal di bawah.</span></span></label>
+  <div id="xp" class="g g2" style="margin-bottom:12px"><label>Dari<input type="date" id="xfrom" value="${mk}-01"></label><label>Sampai<input type="date" id="xto" value="${mk}-${String(last).padStart(2,'0')}"></label></div>
+  <label class="opt"><input type="radio" name="xm" value="all"><span><b>Semua transaksi</b><br><span class="mut">Seluruh pemasukan, pengeluaran, dan transfer akun Anda.</span></span></label>
+  <div class="err" id="xerr" style="padding:2px 0 10px;text-align:left"></div>
+  <button class="btn d" style="width:100%" id="xb">Lanjut ke konfirmasi</button></form>
+  <div class="card"><div class="b" style="margin-bottom:6px">Yang perlu diketahui</div>
+  <ul class="mut" style="margin:0;padding-left:18px;line-height:1.7"><li>Rekening, kategori, dan budget tetap ada.</li><li>Saldo awal rekening tidak berubah, jadi saldo kembali ke saldo awal bila semua transaksi direset.</li><li>Reset berlaku untuk akun Anda sendiri, tidak memengaruhi pengguna lain.</li><li>Di aplikasi, transaksi tidak bisa dikembalikan. Di spreadsheet, barisnya tetap ada dengan kolom <i>deleted_at</i> terisi.</li></ul></div>`;
+  const mode=()=>$('input[name=xm]:checked').value;
+  const sync=()=>{$('#xp').style.display=mode()==='period'?'':'none'};
+  $$('input[name=xm]').forEach(r=>r.onchange=sync);sync();
+  $('#xf').onsubmit=e=>{e.preventDefault();$('#xerr').textContent='';
+    const p={mode:mode()};
+    if(p.mode==='period'){p.from=$('#xfrom').value;p.to=$('#xto').value;
+      if(!p.from||!p.to)return $('#xerr').textContent='Tanggal awal dan akhir wajib diisi.';
+      if(p.from>p.to)return $('#xerr').textContent='Tanggal awal harus sebelum tanggal akhir.'}
+    guard($('#xb'),async()=>{
+      const pv=await call('resetPreview',p);
+      if(!pv.count){$('#xerr').textContent='Tidak ada transaksi pada cakupan tersebut.';return}
+      const scope=p.mode==='all'?'<b>semua transaksi</b>':`transaksi <b>${fd(p.from)} – ${fd(p.to)}</b>`;
+      modal(`<h3 style="margin-top:0;color:var(--red)">Konfirmasi reset</h3>
+      <p>Anda akan menghapus ${scope}.</p>
+      <div class="card" style="margin-bottom:12px"><div class="row sb"><span class="mut">Jumlah transaksi</span><b>${pv.count}</b></div><div class="row sb"><span class="mut">Total pemasukan</span><b class="inc">${rp(pv.income)}</b></div><div class="row sb"><span class="mut">Total pengeluaran</span><b class="exp">${rp(pv.expense)}</b></div></div>
+      <label>Ketik <b>RESET</b> untuk melanjutkan<input id="xc" autocomplete="off" autocapitalize="characters"></label>
+      <div class="row"><button type="button" class="btn grow" onclick="closeModal()">Batal</button><button type="button" class="btn d grow" id="xgo" disabled>Reset sekarang</button></div>`);
+      $('#xc').oninput=ev=>{$('#xgo').disabled=ev.target.value.trim()!=='RESET'};
+      $('#xgo').onclick=()=>guard($('#xgo'),async()=>{
+        const r=await call('resetTransactions',{...p,confirm:'RESET'});
+        closeModal();S.dashMonth=null;toast(r.deleted+' transaksi berhasil direset');pgReset()})})};
+}
+
+route();
+</script>
+</body>
+</html>
